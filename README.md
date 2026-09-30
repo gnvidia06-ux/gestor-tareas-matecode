@@ -1,33 +1,30 @@
-# Gestor estratégico de tareas – MateCode
+# Gestor estratégico de tareas (MateCode)
 
-Aplicación web de una sola página (SPA) para que cada usuario gestione sus tareas de forma privada. Incluye autenticación, persistencia en tiempo real y el envío por email de un resumen de tareas.
+Este es mi Proyecto Integrador 4 del bootcamp Soy Henry. Es una aplicación web para que cada persona pueda armar su lista de tareas, marcarlas como hechas y, cuando quiera, recibir por mail un resumen de lo que tiene pendiente y de lo que ya completó.
 
-Proyecto Integrador 4 del bootcamp Soy Henry.
+**Probala acá:** https://gestor-tareas-coral-iota.vercel.app
 
-**Demo en producción:** https://gestor-tareas-coral-iota.vercel.app
+## Qué se puede hacer
 
-## Funcionalidades
+- Crear una cuenta, iniciar sesión y cerrarla con email y contraseña.
+- Crear, editar, completar y eliminar tareas. Cada usuario ve solo las suyas.
+- Ver la lista actualizada al instante, sin recargar la página.
+- Mandarse por email un resumen con las tareas pendientes y las completadas.
+- Si alguien intenta entrar a `/tasks` sin haber iniciado sesión, la app lo manda a `/login`.
 
-- Registro, inicio y cierre de sesión con email y contraseña.
-- Rutas protegidas: sin sesión, `/tasks` redirige a `/login`.
-- CRUD de tareas por usuario: crear, completar, editar y eliminar.
-- Actualización en tiempo real de la lista, sin recargar la página.
-- Envío de un resumen de tareas (pendientes y completadas) al email del usuario.
-- Reglas de seguridad en Firestore: cada usuario solo puede leer, editar y borrar sus propias tareas.
+## Con qué está hecho
 
-## Tecnologías
+- **React 19 + TypeScript + Vite** para el frontend, con React Router para las rutas.
+- **Firebase Authentication y Firestore** para las cuentas y para guardar las tareas.
+- **AWS SES** para enviar los mails.
+- **Vercel** para publicar la app y para correr la función que habla con SES.
+- **Vitest y React Testing Library** para los tests.
 
-- **Frontend:** React 19, TypeScript, Vite, React Router.
-- **Backend como servicio:** Firebase Authentication y Firestore.
-- **Emails:** AWS SES, desde una función serverless.
-- **Deploy y funciones:** Vercel.
-- **Tests:** Vitest y React Testing Library.
-
-## Estructura del proyecto
+## Cómo está organizado el código
 
 ```
 api/
-  send-summary.ts        Función serverless (Vercel Function) que envía el email con SES
+  send-summary.ts        Función de Vercel que envía el mail con SES
 src/
   hooks/                 useAuth (sesión) y useTasks (tareas en tiempo real)
   pages/                 Login, Register y Tasks
@@ -35,49 +32,60 @@ src/
   services/              firebase, taskService y summaryService
   types/                 Tipos de TypeScript (Task)
   setupTests.ts          Configuración de los tests
-vercel.json              Redirección de rutas para la SPA
+vercel.json              Redirección de rutas para la app de una sola página
 ```
 
-## Decisiones arquitectónicas
+## Decisiones que tomé y por qué
 
-- **Organización por capas.** `pages` contiene las vistas, `hooks` la lógica de React (sesión y tareas), `services` el acceso a Firebase y a la API, `routes` las rutas protegidas, `types` los tipos compartidos y `api` las funciones serverless. Cada capa tiene una sola responsabilidad, lo que facilita probar y cambiar partes por separado.
-- **Firebase como backend.** Authentication y Firestore evitan montar un servidor propio. Firestore permite actualizar la lista en tiempo real con `onSnapshot`, sin recargar la página.
-- **Sesión con Context.** `AuthProvider` usa `onAuthStateChanged`, por lo que la sesión persiste al recargar. `ProtectedRoute` espera a que termine de cargar antes de decidir, para evitar redirecciones falsas al login.
-- **Seguridad de los datos.** Las reglas de Firestore permiten que cada usuario lea, edite y borre solo sus tareas. El `userId` lo toma el código del usuario autenticado, nunca el formulario.
-- **Email desde una función serverless.** Las credenciales de AWS solo existen del lado del servidor, en variables sin prefijo `VITE_`, y nunca llegan al navegador. La función vive en la carpeta `api/` porque es la que Vercel reconoce automáticamente como Vercel Functions.
-- **Tests con simulaciones.** Firebase y AWS se reemplazan por versiones falsas, así los tests corren rápido y sin credenciales.
-- **Limitación conocida.** La función `send-summary` todavía no verifica el token de Firebase del usuario. Una mejora futura es exigirlo para que solo usuarios autenticados puedan invocarla.
+**Separar el código por capas.** Las pantallas están en `pages`, la lógica de React (sesión y tareas) en `hooks`, todo lo que habla con Firebase o con la API en `services`, y los tipos en `types`. Me sirvió para que cada archivo haga una sola cosa y para poder probar cada parte por separado.
 
-## Requisitos previos
+**Firebase en lugar de un servidor propio.** Con Authentication y Firestore me ahorré montar y mantener un backend. Además, Firestore permite escuchar los cambios en vivo con `onSnapshot`, y así la lista se actualiza sola.
 
-- Node.js 20 o superior.
-- Un proyecto de Firebase con Authentication (email/contraseña) y Firestore activados.
-- Una cuenta de AWS con SES configurado: un remitente verificado y un usuario IAM con permiso para enviar emails.
-- Vercel CLI (`npm install -g vercel`) para probar la función de email en local.
+**La sesión vive en un Context.** `AuthProvider` usa `onAuthStateChanged`, y por eso la sesión se mantiene aunque se recargue la página. `ProtectedRoute` espera a que Firebase termine de revisar la sesión antes de decidir a dónde mandar al usuario. Sin esa espera, se veía un parpadeo hacia el login aunque la persona estuviera logueada.
 
-## Instalación
+**La seguridad está en las reglas de Firestore.** Las reglas solo dejan leer, editar y borrar las tareas propias. El `userId` lo toma el código a partir del usuario autenticado y nunca sale del formulario, para que nadie pueda crear tareas a nombre de otro.
 
-1. Clonar el repositorio e instalar las dependencias:
+**El mail se envía desde una función de Vercel.** Las credenciales de AWS no pueden estar en el navegador, porque cualquiera las vería. Por eso viven como variables de entorno del lado del servidor, sin el prefijo `VITE_`. La función está en la carpeta `api/` porque es la que Vercel reconoce automáticamente.
+
+**Los tests no dependen de servicios reales.** Simulo Firebase y AWS con versiones falsas. Así los tests corren rápido y no hace falta tener credenciales para ejecutarlos.
+
+**Algo que falta y que sé que falta.** La función `send-summary` todavía no comprueba el token de Firebase de quien la llama. Como mejora futura, la haría exigir que el usuario esté autenticado, para que nadie de afuera pueda usarla.
+
+## Cómo correrlo en tu computadora
+
+Necesitás Node.js 20 o superior, un proyecto de Firebase con Authentication (email y contraseña) y Firestore activados, y una cuenta de AWS con un remitente verificado en SES y un usuario de IAM con permiso para enviar mails. Para probar el envío de mails en local también hace falta Vercel CLI (`npm install -g vercel`).
+
+1. Instalá las dependencias:
 
 ```bash
    npm install
 ```
 
-2. Crear el archivo de variables de entorno a partir del ejemplo:
+2. Copiá el archivo de ejemplo de variables de entorno:
 
 ```bash
    cp .env.example .env
 ```
 
-   En Windows (PowerShell): `Copy-Item .env.example .env`
+   En Windows con PowerShell: `Copy-Item .env.example .env`
 
-3. Completar el `.env` con tus propios valores (ver la sección siguiente).
+3. Completá el `.env` con tus datos (la lista está más abajo).
 
-4. En Firestore, crear el índice compuesto que necesita la consulta de tareas: colección `tasks`, campos `userId` (ascendente) y `createdAt` (descendente). Si falta, la consola del navegador muestra un enlace para crearlo con un clic.
+4. Creá en Firestore el índice que necesita la consulta de tareas: colección `tasks`, con `userId` ascendente y `createdAt` descendente. Si no lo creás, la consola del navegador te muestra un enlace para hacerlo con un clic.
+
+5. Levantá todo junto, app y función de mail:
+
+```bash
+   vercel dev
+```
+
+   Queda disponible en `http://localhost:3000`. La primera vez, Vercel te pide iniciar sesión y vincular el proyecto.
+
+Si solo querés ver el frontend, sin el envío de mails, alcanza con `npm run dev`.
 
 ## Variables de entorno
 
-| Variable | Descripción |
+| Variable | Para qué sirve |
 | --- | --- |
 | `VITE_FIREBASE_API_KEY` | Configuración de la app web de Firebase |
 | `VITE_FIREBASE_AUTH_DOMAIN` | Configuración de la app web de Firebase |
@@ -85,37 +93,21 @@ vercel.json              Redirección de rutas para la SPA
 | `VITE_FIREBASE_STORAGE_BUCKET` | Configuración de la app web de Firebase |
 | `VITE_FIREBASE_MESSAGING_SENDER_ID` | Configuración de la app web de Firebase |
 | `VITE_FIREBASE_APP_ID` | Configuración de la app web de Firebase |
-| `AWS_ACCESS_KEY_ID` | Clave de acceso del usuario IAM de AWS |
-| `AWS_SECRET_ACCESS_KEY` | Clave secreta del usuario IAM de AWS |
+| `AWS_ACCESS_KEY_ID` | Clave de acceso del usuario de IAM |
+| `AWS_SECRET_ACCESS_KEY` | Clave secreta del usuario de IAM |
 | `AWS_REGION` | Región de SES (por ejemplo, `us-east-2`) |
-| `SES_SENDER_EMAIL` | Remitente verificado en SES |
+| `SES_SENDER_EMAIL` | Mail remitente, verificado en SES |
 
-El archivo `.env` está en el `.gitignore` y nunca debe subirse al repositorio. El repositorio incluye `.env.example`, que solo tiene los nombres de las variables.
+El `.env` está en el `.gitignore` y no se sube al repositorio. Lo que sí está es `.env.example`, que tiene solo los nombres de las variables, sin valores.
 
-## Ejecución en local
+## Cómo se envía el mail de resumen
 
-Para correr la app **junto con la función de email**:
-
-```bash
-vercel dev
-```
-
-La app queda en `http://localhost:3000`. La primera vez, Vercel pide iniciar sesión y vincular el proyecto.
-
-Si solo se necesita el frontend, sin el envío de emails:
-
-```bash
-npm run dev
-```
-
-## Flujo de envío de emails
-
-1. El usuario aprieta **Enviar resumen por email** en la pantalla de tareas.
-2. `Tasks.tsx` llama a `enviarResumen(email, tareas)`, definida en `summaryService.ts`.
-3. El servicio hace un `POST` a `/api/send-summary` con el email y la lista de tareas.
-4. La función serverless valida el método y los datos, y arma el texto con las tareas pendientes y completadas.
-5. Con el SDK de AWS, crea un cliente de SES con las credenciales de las variables de entorno y envía el mensaje desde `SES_SENDER_EMAIL`.
-6. La función responde `200` si salió bien o `500` si falló, y la pantalla muestra el resultado al usuario.
+1. La persona aprieta **Enviar resumen por email** en la pantalla de tareas.
+2. `Tasks.tsx` llama a `enviarResumen` (en `summaryService.ts`) con el email del usuario y su lista de tareas.
+3. Ese servicio hace un `POST` a `/api/send-summary`.
+4. La función de Vercel revisa que el método y los datos sean válidos y arma el texto, separando pendientes y completadas.
+5. Con el SDK de AWS crea un cliente de SES usando las variables de entorno y manda el mensaje desde el remitente configurado en `SES_SENDER_EMAIL`.
+6. Responde `200` si salió bien o `500` si hubo un error, y la pantalla le muestra el resultado al usuario.
 
 ## Tests
 
@@ -123,59 +115,48 @@ npm run dev
 npm test
 ```
 
-Para una sola corrida, sin modo vigilancia:
+Para correrlos una sola vez, sin quedarse escuchando cambios:
 
 ```bash
 npm test -- --run
 ```
 
-Los tests cubren `ProtectedRoute` (cargando, sin sesión y con sesión) y la pantalla de tareas (formulario, validación, eliminar y envío del resumen). Firebase y AWS se reemplazan por versiones simuladas, así que no hacen falta credenciales para correrlos.
+Hay tests para `ProtectedRoute` (mientras carga, sin sesión y con sesión) y para la pantalla de tareas (el formulario, la validación del título, eliminar con confirmación y el envío del resumen). En total son 12.
 
-## Otros comandos
+Otros comandos que uso seguido:
 
 | Comando | Qué hace |
 | --- | --- |
 | `npm run lint` | Revisa el código con ESLint |
-| `npm run build` | Comprueba los tipos y genera la versión de producción |
+| `npm run build` | Chequea los tipos y genera la versión de producción |
 | `npm run preview` | Sirve localmente la versión compilada |
 
-## Deploy en Vercel
+## Cómo lo publiqué en Vercel
 
-1. Cargar las 10 variables del `.env` en **Settings → Environment Variables** del proyecto en Vercel.
-2. Desplegar con:
+1. Cargué las 10 variables del `.env` en **Settings → Environment Variables** del proyecto en Vercel.
+2. Desplegué con `vercel --prod`.
+3. Agregué el dominio de producción en Firebase, en **Authentication → Settings → Authorized domains**. Sin este paso el login falla en la página publicada.
 
-```bash
-   vercel --prod
-```
+El archivo `vercel.json` manda todas las rutas a `index.html`, excepto las que empiezan con `/api/`. Gracias a eso, recargar la página estando en `/tasks` no da error 404 y la función de mail sigue funcionando.
 
-3. Agregar el dominio de producción en Firebase, en **Authentication → Settings → Authorized domains**. Sin este paso el login falla en la URL pública.
+## Cómo usé la IA en el proceso
 
-El archivo `vercel.json` redirige todas las rutas a `index.html`, salvo las que empiezan con `/api/`. Así, recargar la página en `/tasks` no da error 404 y la función de email sigue disponible.
+Usé Claude como apoyo durante todo el proyecto. Donde más me sirvió fue en estas situaciones:
 
-## Uso de IA en el proceso de trabajo
+- **Encontrar errores de configuración.** Me ayudó a ver que mi `.env` estaba mal armado (variables pegadas en la misma línea y las dos claves de AWS juntas) y a ordenar los pasos para levantar el proyecto con `vercel dev`.
+- **Entender mensajes de error.** Un test fallaba porque lo que dibujaba un test seguía en pantalla en el siguiente. Entendí que faltaba limpiar entre tests y lo resolví agregando `cleanup`.
+- **Armar los tests.** Me mostró cómo reemplazar Firebase y AWS por versiones falsas para probar las pantallas sin credenciales.
+- **Arreglar el lint.** Entendí por qué ESLint se quejaba del uso de `any` y de llamar a `setState` dentro de un efecto, y cómo corregirlo sin cambiar el comportamiento de la app.
+- **Preparar el deploy.** Me guió con las variables en Vercel, con la redirección de rutas y con la autorización del dominio en Firebase.
 
-Usé un asistente de IA (Claude) como apoyo durante todo el desarrollo, y fue más efectivo en estas situaciones:
+Algunas cosas que aprendí sobre cómo trabajar con IA:
 
-- **Depurar configuración.** Me ayudó a detectar errores concretos en el `.env` y en el flujo de `vercel dev`.
-- **Interpretar mensajes de error.** Por ejemplo, un test fallaba porque lo que se dibujaba en un test quedaba en pantalla en el siguiente. Entendí que faltaba limpiar entre tests y lo resolví con `cleanup`.
-- **Escribir tests.** Me ayudó a armar las simulaciones de Firebase y de AWS para probar las pantallas sin credenciales.
-- **Corregir lint.** Entendí por qué ESLint marcaba el uso de `any` y el `setState` dentro de un efecto, y cómo corregirlos.
-- **Preparar el deploy.** Me guió con las variables en Vercel, la redirección de rutas y la autorización del dominio en Firebase.
+- Da mejores resultados pasarle archivos completos que fragmentos sueltos.
+- Conviene verificar cada cambio con `npm run lint`, `npm test` y `npm run build` antes de hacer commit, en lugar de confiar a ciegas.
+- Sirve más pedir que explique el motivo de cada cambio que copiar y pegar sin entender.
+- Nunca hay que dejar credenciales a la vista en capturas ni en el chat. Si una clave se expone, hay que rotarla.
 
-Buenas prácticas que descubrí:
+## Cosas para tener en cuenta
 
-- Pasarle archivos completos, no fragmentos, para recibir respuestas precisas.
-- Verificar cada cambio con `npm run lint`, `npm test` y `npm run build` antes de hacer commit.
-- Pedir que explique el motivo de cada cambio, en lugar de copiar y pegar sin entender.
-- No compartir credenciales en capturas ni en el chat: una clave expuesta hay que rotarla.
-
-### Registro de uso de IA
-
-El registro con capturas de las consultas y una explicación de qué hice con cada respuesta está acá:
-
-[Ver registro de IA en Google Drive](PEGAR_AQUI_EL_ENLACE_DE_DRIVE)
-
-## Notas
-
-- La cuenta de AWS SES puede estar en modo *sandbox*. En ese modo solo se pueden enviar emails a direcciones verificadas. Para enviar a cualquier destinatario hay que pedir a AWS la salida del sandbox.
-- Las variables con prefijo `VITE_` quedan incluidas en el código que recibe el navegador. Eso es esperable para la configuración de Firebase, y los datos se protegen con las reglas de Firestore. Las variables de AWS no llevan ese prefijo y solo se usan del lado del servidor.
+- Mi cuenta de AWS SES está en modo *sandbox*, y en ese modo solo se pueden enviar mails a direcciones verificadas. Para mandar a cualquier destinatario habría que pedirle a AWS que saque la cuenta del sandbox.
+- Las variables que empiezan con `VITE_` terminan dentro del código que recibe el navegador. Es lo esperable para la configuración de Firebase, y los datos quedan protegidos por las reglas de Firestore. Las variables de AWS no tienen ese prefijo, así que solo se usan del lado del servidor.
