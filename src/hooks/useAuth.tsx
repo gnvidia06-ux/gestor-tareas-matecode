@@ -39,6 +39,15 @@ function traducirErrorFirebase(codigo: string): string {
   }
 }
 
+// Saca el codigo de un error desconocido (los errores de Firebase traen
+// una propiedad "code") sin necesidad de usar el tipo any.
+function obtenerCodigo(error: unknown): string {
+  if (typeof error === "object" && error !== null && "code" in error) {
+    return String((error as { code: unknown }).code);
+  }
+  return "";
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -60,16 +69,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   async function register(email: string, password: string) {
     try {
       await createUserWithEmailAndPassword(auth, email, password);
-    } catch (error: any) {
-      throw new Error(traducirErrorFirebase(error.code));
+    } catch (error) {
+      throw new Error(traducirErrorFirebase(obtenerCodigo(error)), {
+        cause: error,
+      });
     }
   }
 
   async function login(email: string, password: string) {
     try {
       await signInWithEmailAndPassword(auth, email, password);
-    } catch (error: any) {
-      throw new Error(traducirErrorFirebase(error.code));
+    } catch (error) {
+      throw new Error(traducirErrorFirebase(obtenerCodigo(error)), {
+        cause: error,
+      });
     }
   }
 
@@ -85,6 +98,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 }
 
 // Hook personalizado para usar el contexto facilmente en cualquier componente
+// eslint-disable-next-line react-refresh/only-export-components
 export function useAuth() {
   const context = useContext(AuthContext);
   if (!context) {

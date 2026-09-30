@@ -20,8 +20,12 @@ export default function Login() {
     try {
       await login(email, password);
       navigate("/tasks");
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Ocurrió un error inesperado. Intentá de nuevo."
+      );
     } finally {
       setLoading(false);
     }
