@@ -8,6 +8,7 @@ import {
   deleteTask,
   toggleTaskCompleted,
 } from "../services/taskService";
+import { enviarResumen } from "../services/summaryService";
 import type { Task } from "../types/task";
 
 export default function Tasks() {
@@ -17,6 +18,10 @@ export default function Tasks() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [error, setError] = useState("");
+
+  // Estado del envio del resumen por email.
+  const [sendingSummary, setSendingSummary] = useState(false);
+  const [summaryMessage, setSummaryMessage] = useState("");
 
   // Guarda el id de la tarea que se esta editando actualmente (o null si
   // ninguna tarea esta en modo edicion).
@@ -71,6 +76,26 @@ export default function Tasks() {
     }
   }
 
+  // Manda el resumen de tareas al email del usuario logueado.
+  async function handleSendSummary() {
+    if (!user?.email) return;
+
+    setSummaryMessage("");
+    setSendingSummary(true);
+
+    try {
+      await enviarResumen(
+        user.email,
+        tasks.map((t) => ({ title: t.title, completed: t.completed }))
+      );
+      setSummaryMessage(`Resumen enviado a ${user.email}.`);
+    } catch {
+      setSummaryMessage("No se pudo enviar el resumen. Intentá de nuevo.");
+    } finally {
+      setSendingSummary(false);
+    }
+  }
+
   return (
     <div>
       <header>
@@ -104,6 +129,14 @@ export default function Tasks() {
 
       <section>
         <h2>Lista de tareas</h2>
+
+        <button
+          onClick={handleSendSummary}
+          disabled={sendingSummary || tasks.length === 0}
+        >
+          {sendingSummary ? "Enviando..." : "Enviar resumen por email"}
+        </button>
+        {summaryMessage && <p role="status">{summaryMessage}</p>}
 
         {loadingTasks && <p>Cargando tareas...</p>}
 
