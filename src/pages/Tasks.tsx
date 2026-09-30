@@ -49,23 +49,28 @@ export default function Tasks() {
 
   return (
     <div>
-      <header>
-        <h1>Mis tareas</h1>
-        <p>Sesión iniciada como: {user?.email}</p>
+      <header className="app-header">
+        <div>
+          <h1>Mis tareas</h1>
+          <p>Sesión iniciada como: {user?.email}</p>
+        </div>
         <button onClick={logout}>Cerrar sesión</button>
       </header>
 
       <TaskForm onCreate={handleCreate} />
 
       <section>
-        <h2>Lista de tareas</h2>
+        <div className="section-head">
+          <h2>Lista de tareas</h2>
+          <button
+            className="btn-primary"
+            onClick={handleSendSummary}
+            disabled={sendingSummary || tasks.length === 0}
+          >
+            {sendingSummary ? "Enviando..." : "Enviar resumen por email"}
+          </button>
+        </div>
 
-        <button
-          onClick={handleSendSummary}
-          disabled={sendingSummary || tasks.length === 0}
-        >
-          {sendingSummary ? "Enviando..." : "Enviar resumen por email"}
-        </button>
         {summaryMessage && <p role="status">{summaryMessage}</p>}
 
         <TaskList

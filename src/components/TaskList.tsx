@@ -54,18 +54,20 @@ export default function TaskList({
 
   return (
     <>
-      {loading && <p>Cargando tareas...</p>}
+      {loading && <p className="empty">Cargando tareas...</p>}
 
       {!loading && tasks.length === 0 && (
-        <p>Todavía no tenés tareas. ¡Creá la primera arriba!</p>
+        <p className="empty">
+          Todavía no tenés tareas. ¡Creá la primera arriba!
+        </p>
       )}
 
-      <ul>
+      <ul className="task-list">
         {tasks.map((task) => (
-          <li key={task.id}>
+          <li key={task.id} className="task-item">
             {editingId === task.id ? (
               // Modo edicion: muestra inputs en vez de texto
-              <div>
+              <div className="task-edit">
                 <input
                   type="text"
                   value={editTitle}
@@ -75,27 +77,45 @@ export default function TaskList({
                   value={editDescription}
                   onChange={(e) => setEditDescription(e.target.value)}
                 />
-                <button onClick={() => saveEditing(task.id)}>Guardar</button>
-                <button onClick={cancelEditing}>Cancelar</button>
+                <div className="task-actions">
+                  <button
+                    className="btn-primary"
+                    onClick={() => saveEditing(task.id)}
+                  >
+                    Guardar
+                  </button>
+                  <button onClick={cancelEditing}>Cancelar</button>
+                </div>
               </div>
             ) : (
               // Modo normal: muestra la tarea como texto
               <div>
-                <input
-                  type="checkbox"
-                  checked={task.completed}
-                  onChange={() => onToggle(task)}
-                />
-                <strong
-                  style={{
-                    textDecoration: task.completed ? "line-through" : "none",
-                  }}
-                >
-                  {task.title}
-                </strong>
-                <p>{task.description}</p>
-                <button onClick={() => startEditing(task)}>Editar</button>
-                <button onClick={() => handleDelete(task.id)}>Eliminar</button>
+                <div className="task-main">
+                  <input
+                    type="checkbox"
+                    checked={task.completed}
+                    onChange={() => onToggle(task)}
+                  />
+                  <div className="task-body">
+                    <strong
+                      className={
+                        task.completed ? "task-title done" : "task-title"
+                      }
+                    >
+                      {task.title}
+                    </strong>
+                    <p className="task-description">{task.description}</p>
+                  </div>
+                </div>
+                <div className="task-actions">
+                  <button onClick={() => startEditing(task)}>Editar</button>
+                  <button
+                    className="btn-danger"
+                    onClick={() => handleDelete(task.id)}
+                  >
+                    Eliminar
+                  </button>
+                </div>
               </div>
             )}
           </li>
