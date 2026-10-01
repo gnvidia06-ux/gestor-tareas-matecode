@@ -51,6 +51,15 @@ vercel.json              Redirección de rutas para la app de una sola página
 
 **Algo que falta y que sé que falta.** La función `send-summary` todavía no comprueba el token de Firebase de quien la llama. Como mejora futura, la haría exigir que el usuario esté autenticado, para que nadie de afuera pueda usarla.
 
+## Reglas de seguridad de Firestore
+
+Las reglas están en [`firestore.rules`](./firestore.rules) y son las mismas que tengo publicadas en la consola de Firebase. Hacen que cada usuario solo pueda trabajar con sus propias tareas:
+
+- **Leer, editar y borrar:** solo si el usuario está autenticado y su `uid` coincide con el `userId` guardado en la tarea.
+- **Crear:** solo si el usuario está autenticado y el `userId` de la tarea nueva es su propio `uid`.
+
+El `userId` nunca lo manda el formulario: lo agrega el código a partir del usuario logueado. Y la consulta de la lista filtra por `userId`, así que Firestore solo devuelve tareas propias.
+
 ## Cómo correrlo en tu computadora
 
 Necesitás Node.js 20 o superior, un proyecto de Firebase con Authentication (email y contraseña) y Firestore activados, y una cuenta de AWS con un remitente verificado en SES y un usuario de IAM con permiso para enviar mails. Para probar el envío de mails en local también hace falta Vercel CLI (`npm install -g vercel`).
