@@ -153,22 +153,48 @@ guarde un registro de como use IA en el protecyo con capturas de las consultas q
 
 ## Cómo usé la IA en el proceso
 
-Usé Claude como apoyo durante todo el proyecto. Donde más me sirvió fue en estas situaciones:
+Usé Claude durante todo el proyecto, y funcionó como un compañero al que le pasaba lo que tenía en pantalla y me decía qué estaba mal. No fue "pedir y pegar": tuve que revisar lo que me devolvía, y varias veces tenía errores.
 
-- **Encontrar errores de configuración.** Me ayudó a ver que mi `.env` estaba mal armado (variables pegadas en la misma línea y las dos claves de AWS juntas) y a ordenar los pasos para levantar el proyecto con `vercel dev`.
-- **Entender mensajes de error.** Un test fallaba porque lo que dibujaba un test seguía en pantalla en el siguiente. Entendí que faltaba limpiar entre tests y lo resolví agregando `cleanup`.
-- **Armar los tests.** Me mostró cómo reemplazar Firebase y AWS por versiones falsas para probar las pantallas sin credenciales.
-- **Arreglar el lint.** Entendí por qué ESLint se quejaba del uso de `any` y de llamar a `setState` dentro de un efecto, y cómo corregirlo sin cambiar el comportamiento de la app.
-- **Preparar el deploy.** Me guió con las variables en Vercel, con la redirección de rutas y con la autorización del dominio en Firebase.
+### Cómo trabajé
 
-Algunas cosas que aprendí sobre cómo trabajar con IA:
+- **Le pasaba archivos completos y capturas de la terminal.** Cuando le mandaba solo un pedazo, las respuestas eran más vagas. Con el archivo entero y el error exacto, el diagnóstico era mucho más preciso.
+- **Avanzaba en pasos chicos.** Una cosa por vez: primero el `.env`, después `vercel dev`, después el botón del mail, después los tests. Así, cuando algo se rompía, sabía en qué paso había sido.
+- **Verificaba cada cambio antes de guardarlo.** Después de cada tanda de cambios corría `npm run lint`, `npm test` y `npm run build`, y recién ahí hacía el commit. Esos tres comandos fueron mi forma de validar lo que me sugería la IA.
+- **Preguntaba el porqué.** Cuando algo no lo entendía, preguntaba en lugar de seguir. Y cuando una sugerencia no me cerraba, la discutía y decidía yo.
 
-- Da mejores resultados pasarle archivos completos que fragmentos sueltos.
-- Conviene verificar cada cambio con `npm run lint`, `npm test` y `npm run build` antes de hacer commit, en lugar de confiar a ciegas.
-- Sirve más pedir que explique el motivo de cada cambio que copiar y pegar sin entender.
-- Nunca hay que dejar credenciales a la vista en capturas ni en el chat. Si una clave se expone, hay que rotarla.
+### Dónde fue más útil
+
+- **Encontrar errores de configuración.** Mi `.env` tenía dos variables pegadas en la misma línea y las dos columnas del CSV de AWS juntas. A mí me parecía bien, y no lo habría encontrado rápido.
+- **Entender mensajes de error.** Cuando un test fallaba porque se acumulaban las pantallas de un test al siguiente, entendí que faltaba limpiar entre tests y lo resolví con `cleanup()`.
+- **Armar los tests con mocks.** Aprendí a reemplazar Firebase y AWS por versiones falsas para probar las pantallas sin credenciales.
+- **Entender el lint.** Aprendí por qué ESLint se quejaba del `any` y del `setState` dentro de un efecto.
+- **Pensar la seguridad.** Me ayudó a ver que mi función de email aceptaba cualquier destinatario y que había que validar el token de Firebase.
+
+### Cuándo la IA se equivocó (y cómo lo detecté)
+
+- Primero me dijo que quizás la función de email no existía, y después se corrigió cuando vio en mi explorador que `api/send-summary.ts` ya estaba.
+- Me dijo que los errores de lint eran "solo de estilo", pero ESLint los marcaba como errores. Lo vi al correr `npm run lint`, y por eso los arreglé.
+- La regla de `vercel.json` que me dio al principio mandaba todo a `index.html`, incluso los archivos que Vite pide en desarrollo, y rompía el servidor local. Lo vi en el log, y se corrigió.
+- El setup de tests que me dio no limpiaba la pantalla entre tests, y un test fallaba por eso.
+
+También me equivoqué yo: puse el CSS en `index.html` en lugar de `index.css`, y escribí mal dos nombres de archivo (`vercer.json` y `TaskFrom.tsx`). Los encontré revisando el explorador de VS Code y el error del navegador.
+
+### Decisiones técnicas que tomé
+
+- **Validar el token con la API de Firebase Auth en lugar de `firebase-admin`.** La función hace una consulta con la clave web que ya tenía cargada, y así evité cargar una clave de servicio nueva como otro secreto en Vercel. El destinatario sale del token, no del cuerpo del pedido.
+- **No agregar librerías de estilos.** Hice el diseño con CSS simple, porque la consigna evalúa funcionalidad y arquitectura, y no quería sumar riesgo.
+- **Extraer `TaskForm` y `TaskList` a `components`.** Para que `Tasks.tsx` solo conecte piezas y cada componente haga una sola cosa.
+- **Guardar una copia de las reglas de Firestore en el repositorio.** Como evidencia de cómo protejo los datos.
+
+### Qué aprendí sobre trabajar con IA
+
+- Sirve más para entender que para copiar: si no entiendo el cambio, no lo guardo.
+- Hay que validar siempre con lint, tests y build, porque puede sonar muy segura y estar equivocada.
+- Conviene cuidar las credenciales: mantener el `.env` fuera del repositorio y no pasarlas en mensajes ni en capturas.
 
 ## Cosas para tener en cuenta
+
+- **Convención de commits.** Los primeros commits siguen el formato `hito N: ...`, porque los fui haciendo etapa por etapa. A partir de ahí uso commits semánticos (`feat`, `fix`, `docs`, `test`, `style`, `refactor`) para que el historial sea más fácil de leer.
 
 - Mi cuenta de AWS SES está en modo *sandbox*, y en ese modo solo se pueden enviar mails a direcciones verificadas. Para mandar a cualquier destinatario habría que pedirle a AWS que saque la cuenta del sandbox.
 - Las variables que empiezan con `VITE_` terminan dentro del código que recibe el navegador. Es lo esperable para la configuración de Firebase, y los datos quedan protegidos por las reglas de Firestore. Las variables de AWS no tienen ese prefijo, así que solo se usan del lado del servidor.
