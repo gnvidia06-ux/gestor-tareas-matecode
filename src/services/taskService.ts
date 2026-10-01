@@ -29,10 +29,12 @@ export async function createTask(userId: string, input: NewTaskInput) {
 
 // Se suscribe a las tareas del usuario y llama a callback cada vez que
 // algo cambia (crear, editar, borrar), sin necesidad de recargar la pagina.
+// Si la consulta falla (permisos, conexion, indice faltante), llama a onError.
 // Devuelve una funcion para cancelar la suscripcion (unsubscribe).
 export function subscribeToTasks(
   userId: string,
-  callback: (tasks: Task[]) => void
+  callback: (tasks: Task[]) => void,
+  onError?: (error: Error) => void
 ): Unsubscribe {
   const q = query(
     tasksCollection,
@@ -40,13 +42,20 @@ export function subscribeToTasks(
     orderBy("createdAt", "desc")
   );
 
-  return onSnapshot(q, (snapshot) => {
-    const tasks: Task[] = snapshot.docs.map((docSnap) => ({
-      id: docSnap.id,
-      ...(docSnap.data() as Omit<Task, "id">),
-    }));
-    callback(tasks);
-  });
+  return onSnapshot(
+    q,
+    (snapshot) => {
+      const tasks: Task[] = snapshot.docs.map((docSnap) => ({
+        id: docSnap.id,
+        ...(docSnap.data() as Omit<Task, "id">),
+      }));
+      callback(tasks);
+    },
+    (error) => {
+      console.error("Error al escuchar las tareas:", error);
+      onError?.(error);
+    }
+  );
 }
 
 export async function updateTask(taskId: string, changes: Partial<Task>) {

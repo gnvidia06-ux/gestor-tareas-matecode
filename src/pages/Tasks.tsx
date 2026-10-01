@@ -10,21 +10,57 @@ import {
 import { enviarResumen } from "../services/summaryService";
 import TaskForm from "../components/TaskForm";
 import TaskList from "../components/TaskList";
-import type { NewTaskInput } from "../types/task";
+import type { NewTaskInput, Task } from "../types/task";
 
 export default function Tasks() {
   const { user, logout } = useAuth();
-  const { tasks, loadingTasks } = useTasks();
+  const { tasks, loadingTasks, error: loadError } = useTasks();
 
   // Estado del envio del resumen por email.
   const [sendingSummary, setSendingSummary] = useState(false);
   const [summaryMessage, setSummaryMessage] = useState("");
+
+  // Mensaje de error de las acciones sobre tareas (editar, borrar, completar).
+  const [actionError, setActionError] = useState("");
 
   // El userId lo pone el codigo a partir del usuario logueado,
   // nunca el formulario, tal como exigen las reglas de Firestore.
   async function handleCreate(input: NewTaskInput) {
     if (!user) return;
     await createTask(user.uid, input);
+  }
+
+  // Devuelve true si se guardo, para que la lista sepa si cerrar la edicion.
+  async function handleSave(
+    taskId: string,
+    changes: { title: string; description: string }
+  ): Promise<boolean> {
+    setActionError("");
+    try {
+      await updateTask(taskId, changes);
+      return true;
+    } catch {
+      setActionError("No se pudo guardar la tarea. Intentá de nuevo.");
+      return false;
+    }
+  }
+
+  async function handleDelete(taskId: string) {
+    setActionError("");
+    try {
+      await deleteTask(taskId);
+    } catch {
+      setActionError("No se pudo eliminar la tarea. Intentá de nuevo.");
+    }
+  }
+
+  async function handleToggle(task: Task) {
+    setActionError("");
+    try {
+      await toggleTaskCompleted(task);
+    } catch {
+      setActionError("No se pudo actualizar la tarea. Intentá de nuevo.");
+    }
   }
 
   // Manda el resumen de tareas al email del usuario logueado.
@@ -71,13 +107,15 @@ export default function Tasks() {
         </div>
 
         {summaryMessage && <p role="status">{summaryMessage}</p>}
+        {loadError && <p role="alert">{loadError}</p>}
+        {actionError && <p role="alert">{actionError}</p>}
 
         <TaskList
           tasks={tasks}
           loading={loadingTasks}
-          onToggle={toggleTaskCompleted}
-          onSave={updateTask}
-          onDelete={deleteTask}
+          onToggle={handleToggle}
+          onSave={handleSave}
+          onDelete={handleDelete}
         />
       </section>
     </div>

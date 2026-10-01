@@ -10,30 +10,47 @@ export function useTasks() {
   const { user } = useAuth();
   const uid = user?.uid;
 
-  // Guardamos las tareas junto con el uid del usuario al que pertenecen.
-  // Asi sabemos si lo que tenemos guardado corresponde al usuario actual.
-  const [datos, setDatos] = useState<{ uid: string; tasks: Task[] } | null>(
-    null
-  );
+  // Guardamos las tareas (o el error) junto con el uid del usuario al que
+  // pertenecen. Asi sabemos si lo guardado corresponde al usuario actual.
+  const [datos, setDatos] = useState<{
+    uid: string;
+    tasks: Task[];
+    error: string | null;
+  } | null>(null);
 
   useEffect(() => {
     // Si por alguna razon no hay usuario, no nos suscribimos a nada.
     if (!uid) return;
 
-    const unsubscribe = subscribeToTasks(uid, (nuevasTareas) => {
-      setDatos({ uid, tasks: nuevasTareas });
-    });
+    const unsubscribe = subscribeToTasks(
+      uid,
+      (nuevasTareas) => {
+        setDatos({ uid, tasks: nuevasTareas, error: null });
+      },
+      () => {
+        setDatos({
+          uid,
+          tasks: [],
+          error:
+            "No se pudieron cargar tus tareas. Revisá tu conexión e intentá de nuevo.",
+        });
+      }
+    );
 
     // Cancela la suscripcion cuando el componente se desmonta
     // o cuando cambia el usuario, para evitar memory leaks.
     return () => unsubscribe();
   }, [uid]);
 
-  // Las tareas son las guardadas solo si son del usuario actual.
-  const tasks = uid && datos?.uid === uid ? datos.tasks : SIN_TAREAS;
+  // Lo guardado solo vale si es del usuario actual.
+  const actual = uid && datos?.uid === uid ? datos : null;
 
-  // Carga mientras haya usuario y todavia no hayan llegado sus tareas.
-  const loadingTasks = uid ? datos?.uid !== uid : false;
+  const tasks = actual ? actual.tasks : SIN_TAREAS;
 
-  return { tasks, loadingTasks };
+  // Carga mientras haya usuario y todavia no haya llegado nada (ni tareas ni error).
+  const loadingTasks = uid ? actual === null : false;
+
+  const error = actual?.error ?? null;
+
+  return { tasks, loadingTasks, error };
 }

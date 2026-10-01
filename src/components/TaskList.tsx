@@ -8,7 +8,7 @@ interface TaskListProps {
   onSave: (
     taskId: string,
     changes: { title: string; description: string }
-  ) => Promise<void>;
+  ) => Promise<boolean>;
   onDelete: (taskId: string) => Promise<void>;
 }
 
@@ -41,8 +41,14 @@ export default function TaskList({
 
   async function saveEditing(taskId: string) {
     if (!editTitle.trim()) return;
-    await onSave(taskId, { title: editTitle, description: editDescription });
-    cancelEditing();
+    const guardado = await onSave(taskId, {
+      title: editTitle,
+      description: editDescription,
+    });
+    // Si fallo, dejamos la edicion abierta para no perder lo escrito.
+    if (guardado) {
+      cancelEditing();
+    }
   }
 
   async function handleDelete(taskId: string) {

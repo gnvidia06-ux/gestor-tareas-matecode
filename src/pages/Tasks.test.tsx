@@ -4,7 +4,11 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import Tasks from "./Tasks";
 import { useAuth } from "../hooks/useAuth";
 import { useTasks } from "../hooks/useTasks";
-import { createTask, deleteTask } from "../services/taskService";
+import {
+  createTask,
+  deleteTask,
+  toggleTaskCompleted,
+} from "../services/taskService";
 import { enviarResumen } from "../services/summaryService";
 
 // Reemplazamos todo lo que toca Firebase o AWS por versiones falsas,
@@ -23,6 +27,7 @@ const mockedUseAuth = vi.mocked(useAuth);
 const mockedUseTasks = vi.mocked(useTasks);
 const mockedCreateTask = vi.mocked(createTask);
 const mockedDeleteTask = vi.mocked(deleteTask);
+const mockedToggleTask = vi.mocked(toggleTaskCompleted);
 const mockedEnviarResumen = vi.mocked(enviarResumen);
 
 const tareasDePrueba = [
@@ -44,10 +49,15 @@ const tareasDePrueba = [
   },
 ];
 
-function mockTasks(tasks: typeof tareasDePrueba, loadingTasks = false) {
+function mockTasks(
+  tasks: typeof tareasDePrueba,
+  loadingTasks = false,
+  error: string | null = null
+) {
   mockedUseTasks.mockReturnValue({
     tasks,
     loadingTasks,
+    error,
   } as unknown as ReturnType<typeof useTasks>);
 }
 
@@ -60,6 +70,8 @@ describe("Tasks", () => {
     } as unknown as ReturnType<typeof useAuth>);
     mockTasks(tareasDePrueba);
     mockedCreateTask.mockResolvedValue(undefined);
+    mockedDeleteTask.mockResolvedValue(undefined);
+    mockedToggleTask.mockResolvedValue(undefined);
     mockedEnviarResumen.mockResolvedValue(undefined);
   });
 
@@ -81,6 +93,16 @@ describe("Tasks", () => {
     render(<Tasks />);
 
     expect(screen.getByText(/Todavía no tenés tareas/)).toBeInTheDocument();
+  });
+
+  it("muestra un error si no se pudieron cargar las tareas", () => {
+    mockTasks([], false, "No se pudieron cargar tus tareas.");
+
+    render(<Tasks />);
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "No se pudieron cargar tus tareas."
+    );
   });
 
   it("muestra un error si el título está vacío y no crea la tarea", async () => {
@@ -129,6 +151,31 @@ describe("Tasks", () => {
     await user.click(screen.getAllByRole("button", { name: "Eliminar" })[0]);
 
     expect(mockedDeleteTask).not.toHaveBeenCalled();
+  });
+
+  it("muestra un error si falla al eliminar la tarea", async () => {
+    const user = userEvent.setup();
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+    mockedDeleteTask.mockRejectedValue(new Error("falló"));
+    render(<Tasks />);
+
+    await user.click(screen.getAllByRole("button", { name: "Eliminar" })[0]);
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "No se pudo eliminar la tarea."
+    );
+  });
+
+  it("muestra un error si falla al completar la tarea", async () => {
+    const user = userEvent.setup();
+    mockedToggleTask.mockRejectedValue(new Error("falló"));
+    render(<Tasks />);
+
+    await user.click(screen.getAllByRole("checkbox")[0]);
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "No se pudo actualizar la tarea."
+    );
   });
 
   it("deshabilita el botón de resumen si no hay tareas", () => {
