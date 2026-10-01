@@ -138,6 +138,9 @@ Otros comandos que uso seguido:
 3. Agregué el dominio de producción en Firebase, en **Authentication → Settings → Authorized domains**. Sin este paso el login falla en la página publicada.
 
 El archivo `vercel.json` manda todas las rutas a `index.html`, excepto las que empiezan con `/api/`. Gracias a eso, recargar la página estando en `/tasks` no da error 404 y la función de mail sigue funcionando.
+### Registro del uso de IA
+guarde un registro de como use IA en el protecyo con capturas de las consultas que hice 
+[Ver registro de IA en Google Drive] (https://drive.google.com/drive/folders/11Cz9038RKfD2Iu4bCqubMMC7SXTrXhb-?usp=sharing)
 
 ## Cómo usé la IA en el proceso
 
