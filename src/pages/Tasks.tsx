@@ -36,7 +36,6 @@ export default function Tasks() {
 
     try {
       await enviarResumen(
-        user.email,
         tasks.map((t) => ({ title: t.title, completed: t.completed }))
       );
       setSummaryMessage(`Resumen enviado a ${user.email}.`);

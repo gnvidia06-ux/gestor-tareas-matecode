@@ -141,7 +141,7 @@ describe("Tasks", () => {
     ).toBeDisabled();
   });
 
-  it("envía el resumen al email del usuario y muestra confirmación", async () => {
+  it("envía el resumen y muestra confirmación con el email del usuario", async () => {
     const user = userEvent.setup();
     render(<Tasks />);
 
@@ -149,7 +149,8 @@ describe("Tasks", () => {
       screen.getByRole("button", { name: "Enviar resumen por email" })
     );
 
-    expect(mockedEnviarResumen).toHaveBeenCalledWith("test@tst.com", [
+    // El email ya no viaja desde el frontend: la funcion lo saca del token.
+    expect(mockedEnviarResumen).toHaveBeenCalledWith([
       { title: "Comprar pan", completed: false },
       { title: "Pagar la luz", completed: true },
     ]);
